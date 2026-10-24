@@ -137,3 +137,7 @@ ehthumbs.db
 $RECYCLE.BIN/
 *.stackdump
 *.dmp
+
+
+# GDD
+*.pdf

@@ -15,9 +15,9 @@ public class collision_kill : MonoBehaviour
 
     static void HitPlayer(Collider2D other)
     {
-        TopDownController player = other.GetComponent<TopDownController>();
+        Phase1Controller player = other.GetComponent<Phase1Controller>();
         if (player == null)
-            player = other.GetComponentInParent<TopDownController>();
+            player = other.GetComponentInParent<Phase1Controller>();
         if (player != null)
             player.Hit();
     }
