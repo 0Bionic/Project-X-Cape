@@ -181,13 +181,13 @@ public class Phase1Controller : MonoBehaviour
     static bool WasJumpPressed()
     {
         Keyboard keyboard = Keyboard.current;
-        return keyboard != null && keyboard.cKey.wasPressedThisFrame;
+        return keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
     }
 
     static bool WasDashPressed()
     {
-        Keyboard keyboard = Keyboard.current;
-        return keyboard != null && keyboard.xKey.wasPressedThisFrame;
+        Mouse mouse = Mouse.current;
+        return mouse != null && mouse.rightButton.wasPressedThisFrame;
     }
 
     void UpdateFacing()
