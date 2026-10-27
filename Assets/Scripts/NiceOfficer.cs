@@ -64,6 +64,16 @@ public class NiceOfficer : MonoBehaviour
             spriteRenderer.flipX = direction.x < 0f;
     }
 
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        TopDownController playerHit = collision.collider.GetComponent<TopDownController>();
+        if (playerHit == null)
+            playerHit = collision.collider.GetComponentInParent<TopDownController>();
+
+        if (playerHit != null)
+            playerHit.CaughtByOfficer();
+    }
+
     void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(1f, 0.35f, 0.2f, 0.9f);

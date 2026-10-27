@@ -1,14 +1,17 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class TopDownController : MonoBehaviour
 {
     [SerializeField, Min(0f)] float moveSpeed = 6f;
+    [SerializeField, Min(0f)] float reloadDelay = 0.4f;
 
     Rigidbody2D body;
     SpriteRenderer spriteRenderer;
     Vector2 moveInput;
+    bool dead;
 
     void Awake()
     {
@@ -23,6 +26,9 @@ public class TopDownController : MonoBehaviour
 
     void Update()
     {
+        if (dead)
+            return;
+
         moveInput = ReadMoveInput();
         if (moveInput.sqrMagnitude > 1f)
             moveInput.Normalize();
@@ -33,7 +39,33 @@ public class TopDownController : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (dead)
+        {
+            body.linearVelocity = Vector2.zero;
+            return;
+        }
+
         body.linearVelocity = moveInput * moveSpeed;
+    }
+
+    public void CaughtByOfficer()
+    {
+        if (dead)
+            return;
+
+        dead = true;
+        moveInput = Vector2.zero;
+        body.linearVelocity = Vector2.zero;
+
+        if (spriteRenderer != null)
+            spriteRenderer.color = Color.red;
+
+        Invoke(nameof(ReloadPhase), reloadDelay);
+    }
+
+    void ReloadPhase()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     static Vector2 ReadMoveInput()
