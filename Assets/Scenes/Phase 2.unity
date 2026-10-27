@@ -275,6 +275,11 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.3129592, y: 0.23169136}
   m_EdgeRadius: 0
+--- !u!1 &82202135 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+  m_PrefabInstance: {fileID: 1857983660}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &94924936
 GameObject:
   m_ObjectHideFlags: 0
@@ -3413,6 +3418,11 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.3061595, y: 0.29434586}
   m_EdgeRadius: 0
+--- !u!1 &965655346 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+  m_PrefabInstance: {fileID: 1147377082}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &995114250
 GameObject:
   m_ObjectHideFlags: 0
@@ -4116,7 +4126,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1237075180}
   m_SourcePrefab: {fileID: 100100000, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
 --- !u!1 &1162427372
 GameObject:
@@ -4201,6 +4214,18 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4900831628278636686, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
   m_PrefabInstance: {fileID: 1147377082}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1237075180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 965655346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2234057080b2b6d4ab81f3df3a28cd26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::collision_kill
 --- !u!1 &1237142061
 GameObject:
   m_ObjectHideFlags: 0
@@ -4472,7 +4497,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2039787456}
   m_SourcePrefab: {fileID: 100100000, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
 --- !u!1 &1326731865
 GameObject:
@@ -6304,7 +6332,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2104550667}
   m_SourcePrefab: {fileID: 100100000, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
 --- !u!1 &1882560326
 GameObject:
@@ -6795,6 +6826,23 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.8665085, y: 0.648437}
   m_EdgeRadius: 0
+--- !u!1 &2039787451 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+  m_PrefabInstance: {fileID: 1316230967}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2039787456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2039787451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2234057080b2b6d4ab81f3df3a28cd26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::collision_kill
 --- !u!1 &2046365273
 GameObject:
   m_ObjectHideFlags: 0
@@ -6956,6 +7004,18 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4900831628278636686, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
   m_PrefabInstance: {fileID: 1857983660}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2104550667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82202135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2234057080b2b6d4ab81f3df3a28cd26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::collision_kill
 --- !u!1001 &232367021036961571
 PrefabInstance:
   m_ObjectHideFlags: 0
