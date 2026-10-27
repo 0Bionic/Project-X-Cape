@@ -346,6 +346,18 @@ public class Phase1Controller : MonoBehaviour
             spriteRenderer.color = spriteColor;
     }
 
+    public void SetRespawnPoint(Vector3 position)
+    {
+    if (hurting)
+        return;
+
+    spawnPosition = new Vector3(
+        position.x,
+        position.y,
+        transform.position.z
+    );
+    }
+
     void PlayRun()
     {
         idleTime = 0f;
@@ -369,6 +381,24 @@ public class Phase1Controller : MonoBehaviour
         Bounds spriteBounds = spriteRenderer.sprite.bounds;
         box.size = spriteBounds.size;
         box.offset = spriteBounds.center;
+    }
+
+    void LateUpdate()
+    {
+    if (spriteRenderer == null || spriteRenderer.sprite == null)
+        return;
+
+    BoxCollider2D box = GetComponent<BoxCollider2D>();
+    if (box == null)
+        return;
+
+    float colliderBottom = box.offset.y - box.size.y * 0.5f;
+    float spriteBottom = spriteRenderer.sprite.bounds.min.y
+                         * spriteRenderer.transform.localScale.y;
+
+    Vector3 position = spriteRestLocalPosition;
+    position.y = colliderBottom - spriteBottom;
+    spriteRenderer.transform.localPosition = position;
     }
 
     void UpdateGrounded()
