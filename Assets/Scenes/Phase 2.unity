@@ -1131,7 +1131,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: -811850554563380565, guid: c3f21bca2baa1ba438d0b6e92f9e4d04, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -1152,7 +1152,7 @@ Transform:
   m_GameObject: {fileID: 296576222}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -9.189, y: -3.196, z: 0}
+  m_LocalPosition: {x: -9.014, y: -3.176, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4071,9 +4071,17 @@ PrefabInstance:
       propertyPath: resumeChaseDistance
       value: 5
       objectReference: {fileID: 0}
+    - target: {fileID: 106849564181122483, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
       propertyPath: m_Name
       value: NiceOfficer (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4900831628278636686, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
       propertyPath: m_LocalScale.x
@@ -4235,7 +4243,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1237142062}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: NPCs
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4442,9 +4450,17 @@ PrefabInstance:
       propertyPath: resumeChaseDistance
       value: 5
       objectReference: {fileID: 0}
+    - target: {fileID: 106849564181122483, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
       propertyPath: m_Name
       value: NiceOfficer (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4900831628278636686, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
       propertyPath: m_LocalScale.x
@@ -6277,9 +6293,17 @@ PrefabInstance:
       propertyPath: resumeChaseDistance
       value: 5
       objectReference: {fileID: 0}
+    - target: {fileID: 106849564181122483, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
       propertyPath: m_Name
       value: NiceOfficer
+      objectReference: {fileID: 0}
+    - target: {fileID: 4366692353501266932, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4900831628278636686, guid: dcea501def034c8449c55ed60e10ac71, type: 3}
       propertyPath: m_LocalScale.x
@@ -7113,12 +7137,20 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 4723107735738678597, guid: 73f3309c97c289f4a9975c5625d36a40, type: 3}
     - target: {fileID: 4056680958271275187, guid: b19f4f6903b51e240932670d40ab6198, type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4056680958271275187, guid: b19f4f6903b51e240932670d40ab6198, type: 3}
       propertyPath: m_WasSpriteAssigned
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5490465706353417248, guid: b19f4f6903b51e240932670d40ab6198, type: 3}
       propertyPath: m_Name
       value: CityDweller
+      objectReference: {fileID: 0}
+    - target: {fileID: 5490465706353417248, guid: b19f4f6903b51e240932670d40ab6198, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
