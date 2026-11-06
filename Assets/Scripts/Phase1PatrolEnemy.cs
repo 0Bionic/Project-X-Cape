@@ -275,7 +275,7 @@ public class Phase1PatrolEnemy : MonoBehaviour
         Gizmos.DrawLine(right + Vector3.down * 0.2f,
                         right + Vector3.up * 0.2f);
 
-        // Yellow: detection radius follows the enemy
+        //yellow: detection radius follows the enemy
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
