@@ -245,6 +245,10 @@ public class Phase1Controller : MonoBehaviour
     {
         jumping = true;
         jumpSpeed = Mathf.Max(maxSpeed, Mathf.Sqrt(2f * gravity * Mathf.Max(jumpHeight, 0.01f)));
+        
+        float heightMultiplier = WindZone2D.GetJumpHeightMultiplier(GetComponent<Collider2D>());
+        jumpSpeed *= Mathf.Sqrt(heightMultiplier);
+        
         Vector2 velocity = body.linearVelocity;
         velocity.y = jumpSpeed;
         body.linearVelocity = velocity;
