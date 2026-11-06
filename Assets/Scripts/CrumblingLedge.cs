@@ -67,7 +67,7 @@ public class CrumblingLedge : MonoBehaviour
 
         if (state == State.Crumbling)
         {
-            // Flash as a temporary warning effect.
+            //flash as a temp warning effect
             float flash = Mathf.PingPong(Time.time * 8f, 1f);
 
             for (int i = 0; i < visuals.Length; i++)
