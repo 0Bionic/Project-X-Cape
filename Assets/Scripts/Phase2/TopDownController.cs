@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Animator))]
 public class TopDownController : MonoBehaviour
 {
     [SerializeField, Min(0f)] float moveSpeed = 6f;
@@ -10,6 +11,7 @@ public class TopDownController : MonoBehaviour
 
     Rigidbody2D body;
     SpriteRenderer spriteRenderer;
+    Animator animator;
     Vector2 moveInput;
     bool dead;
 
@@ -21,7 +23,12 @@ public class TopDownController : MonoBehaviour
         body.constraints = RigidbodyConstraints2D.FreezeRotation;
         body.interpolation = RigidbodyInterpolation2D.Interpolate;
         body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        animator = GetComponent<Animator>();
+
+        if (spriteRenderer != null)
+            spriteRenderer.flipY = false;
     }
 
     void Update()
@@ -35,6 +42,9 @@ public class TopDownController : MonoBehaviour
 
         if (spriteRenderer != null && Mathf.Abs(moveInput.x) > 0.01f)
             spriteRenderer.flipX = moveInput.x < 0f;
+
+        if (animator != null)
+            animator.SetFloat("Speed", moveInput.magnitude);
     }
 
     void FixedUpdate()
@@ -56,6 +66,9 @@ public class TopDownController : MonoBehaviour
         dead = true;
         moveInput = Vector2.zero;
         body.linearVelocity = Vector2.zero;
+
+        if (animator != null)
+            animator.SetFloat("Speed", 0f);
 
         if (spriteRenderer != null)
             spriteRenderer.color = Color.red;
