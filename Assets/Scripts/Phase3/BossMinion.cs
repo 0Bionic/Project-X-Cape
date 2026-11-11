@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
-public class BossMinion : MonoBehaviour
+public class BossMinion : MonoBehaviour, IDamageable
 {
     [Header("Movement")]
     [SerializeField, Min(0.1f)] float moveSpeed = 3.5f;
@@ -18,6 +18,8 @@ public class BossMinion : MonoBehaviour
     SpriteRenderer spriteRenderer;
     Transform target;
     float currentHealth;
+    Color baseColor = Color.white;
+    float hitFlashTimer;
 
     void Awake()
     {
@@ -28,6 +30,8 @@ public class BossMinion : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        if (spriteRenderer != null)
+            baseColor = spriteRenderer.color;
         currentHealth = maxHealth;
 
         if (autoDespawnSeconds > 0f)
@@ -45,6 +49,13 @@ public class BossMinion : MonoBehaviour
     {
         if (spriteRenderer == null)
             return;
+
+        if (hitFlashTimer > 0f)
+        {
+            hitFlashTimer -= Time.deltaTime;
+            if (hitFlashTimer <= 0f)
+                spriteRenderer.color = baseColor;
+        }
 
         float vx = rb.linearVelocity.x;
         bool movingRight = Mathf.Abs(vx) > 0.05f
@@ -73,6 +84,15 @@ public class BossMinion : MonoBehaviour
     {
         currentHealth -= damage;
         if (currentHealth <= 0f)
+        {
             Destroy(gameObject);
+            return;
+        }
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = new Color(1f, 0.35f, 0.35f, baseColor.a);
+            hitFlashTimer = 0.08f;
+        }
     }
 }

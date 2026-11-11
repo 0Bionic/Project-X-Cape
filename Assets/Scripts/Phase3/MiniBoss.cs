@@ -1,3 +1,7 @@
+// Script for Scene 3-1 MiniBoss (General idea, will add on Extra ability later if needed)
+// Rest of the mobs in Scene 3-1 will have mechanics to be implemented for mobs in Phase 2
+
+
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]

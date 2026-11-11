@@ -1052,6 +1052,7 @@ GameObject:
   - component: {fileID: 1385299299}
   - component: {fileID: 1385299298}
   - component: {fileID: 1385299297}
+  - component: {fileID: 1385299302}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1255,6 +1256,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1385299302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1385299296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40bf7dd078c7fd4885c3372607e1d0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Phase3PlayerCombat
+  meleeKey: 20
+  meleeDamage: 15
+  meleeCooldown: 0.35
+  meleeReach: 1.8
+  meleeRadius: 1.5
+  meleeVertOffset: {x: 0, y: 0.1}
+  aimMeleeToMouse: 0
+  meleeAttackColor: {r: 0.55, g: 0.92, b: 1, a: 0.9}
+  bulletPrefab: {fileID: 0}
+  firePoint: {fileID: 0}
+  bulletDamage: 5
+  bulletSpeed: 28
+  firingCooldown: 0.2
+  bulletLifetime: 2.5
+  muzzleOffset: 0.8
+  fallbackBulletScale: {x: 0.55, y: 0.22}
+  fallbackBulletColor: {r: 1, g: 0.85, b: 0.2, a: 1}
 --- !u!1 &1406107343
 GameObject:
   m_ObjectHideFlags: 0
@@ -1716,6 +1746,16 @@ MonoBehaviour:
   rocketHoverHeight: 4.5
   rocketFlySpeed: 6
   rocketAcceleration: 10
+  rocketMinArenaX: -15
+  rocketMaxArenaX: 26
+  rocketMinHoverY: 8.5
+  rocketMaxHoverY: 12.5
+  rocketMinPlayerDistanceX: 6
+  rocketWaypointMinInterval: 1.6
+  rocketWaypointMaxInterval: 3.2
+  rocketBobAmplitude: 0.7
+  rocketBobFrequency: 1.8
+  rocketMaxTiltAngle: 8
   firePoint: {fileID: 0}
   rockThrowCooldown: 2.5
   minionSpawnCooldown: 6
@@ -1734,6 +1774,28 @@ MonoBehaviour:
   minionMinArenaX: -17
   minionMaxArenaX: 28
   clearMinionsOnStageChange: 0
+  rocketVisualScale: {x: 1.85, y: 1.85, z: 1}
+  rocketColliderSize: {x: 1.6, y: 3.5}
+  rocketColliderOffset: {x: 0, y: 0}
+  bossBoundaryLayerName: BossBoundary
+  rocketProjectilePrefab: {fileID: 0}
+  rocketProjectileSpeed: 14
+  missileCountPerShower: 9
+  missileStepDelay: 0.16
+  missileSpawnY: 14
+  missileStartX: -15.5
+  missileEndX: 27
+  fallbackMissileScale: {x: 1.35, y: 0.45, z: 1}
+  hunterDronePrefab: {fileID: 0}
+  dronesPerWave: 1
+  maxActiveDrones: 3
+  droneSpawnOffset: {x: 2.2, y: -0.5}
+  droneLaserSpeed: 5.5
+  droneLaserFireInterval: 2
+  droneLasersBlockedByPlatforms: 0
+  cameraFollow: {fileID: 0}
+  rocketCameraSize: 13.5
+  cameraZoomDuration: 1.2
   animator: {fileID: 0}
   spriteRenderer: {fileID: 0}
   visualTransform: {fileID: 0}

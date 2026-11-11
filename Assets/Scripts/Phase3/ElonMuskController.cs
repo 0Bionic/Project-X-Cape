@@ -1,9 +1,10 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(BoxCollider2D))]
-public class ElonMuskController : MonoBehaviour
+public class ElonMuskController : MonoBehaviour, IDamageable
 {
     public enum BossStage
     {
@@ -34,10 +35,20 @@ public class ElonMuskController : MonoBehaviour
     [SerializeField] float carTopSpeedTiltAngle = -8f;
     [SerializeField] float rotationSmoothSpeed = 180f;
 
-    [Header("Rocket Mode — Aerial Tracking (Stage 2)")]
+    [Header("Rocket Mode — Aerial Patrol (Stage 2)")]
     [SerializeField] float rocketHoverHeight = 4.5f;
     [SerializeField, Min(0.1f)] float rocketFlySpeed = 6f;
     [SerializeField, Min(0.1f)] float rocketAcceleration = 10f;
+    [SerializeField] float rocketMinArenaX = -15f;
+    [SerializeField] float rocketMaxArenaX = 26f;
+    [SerializeField] float rocketMinHoverY = 8.5f;
+    [SerializeField] float rocketMaxHoverY = 12.5f;
+    [SerializeField, Min(0f)] float rocketMinPlayerDistanceX = 6f;
+    [SerializeField, Min(0.4f)] float rocketWaypointMinInterval = 1.6f;
+    [SerializeField, Min(0.4f)] float rocketWaypointMaxInterval = 3.2f;
+    [SerializeField, Min(0f)] float rocketBobAmplitude = 0.7f;
+    [SerializeField, Min(0.1f)] float rocketBobFrequency = 1.8f;
+    [SerializeField, Min(0f)] float rocketMaxTiltAngle = 8f;
 
     [Header("Combat & Spawning Hooks (For Future Implementation)")]
     [SerializeField] Transform firePoint;
@@ -65,12 +76,39 @@ public class ElonMuskController : MonoBehaviour
     [SerializeField] float minionMaxArenaX = 28f;
     [SerializeField] bool clearMinionsOnStageChange = true;
 
+    [Header("Rocket Mode — Collider & Attacks")]
+    [SerializeField] Vector3 rocketVisualScale = new Vector3(1.85f, 1.85f, 1f);
+    [SerializeField] Vector2 rocketColliderSize = new Vector2(2.8f, 6.2f);
+    [SerializeField] Vector2 rocketColliderOffset = Vector2.zero;
+    [SerializeField] string bossBoundaryLayerName = "BossBoundary";
+    [SerializeField] ElonRocketProjectile rocketProjectilePrefab;
+    [SerializeField, Min(1f)] float rocketProjectileSpeed = 14f;
+    [SerializeField, Min(1)] int missileCountPerShower = 9;
+    [SerializeField, Min(0.02f)] float missileStepDelay = 0.16f;
+    [SerializeField] float missileSpawnY = 14f;
+    [SerializeField] float missileStartX = -15.5f;
+    [SerializeField] float missileEndX = 27f;
+    [SerializeField] Vector3 fallbackMissileScale = new Vector3(1.35f, 0.45f, 1f);
+    [SerializeField] ElonHunterDrone hunterDronePrefab;
+    [SerializeField, Min(1)] int dronesPerWave = 1;
+    [SerializeField, Min(1)] int maxActiveDrones = 3;
+    [SerializeField] Vector2 droneSpawnOffset = new Vector2(2.2f, -0.5f);
+    [SerializeField, Min(0.5f)] float droneLaserSpeed = 5.5f;
+    [SerializeField, Min(0.1f)] float droneLaserFireInterval = 2f;
+    [SerializeField] bool droneLasersBlockedByPlatforms;
+
+    [Header("Rocket Mode — Camera Zoom")]
+    [SerializeField] Phase1CameraFollow cameraFollow;
+    [SerializeField, Min(1f)] float rocketCameraSize = 13.5f;
+    [SerializeField, Min(0f)] float cameraZoomDuration = 1.2f;
+
     [Header("Visual & Animator References")]
     [SerializeField] Animator animator;
     [SerializeField] SpriteRenderer spriteRenderer;
     [SerializeField] Transform visualTransform;
 
     Rigidbody2D body;
+    BoxCollider2D bodyCollider;
     float arenaBaseY;
     bool facingRight;
     bool isBrakingOrStopped = true;
@@ -79,6 +117,21 @@ public class ElonMuskController : MonoBehaviour
     float spawnTimer;
     float firePointAbsX;
     readonly List<GameObject> activeMinions = new List<GameObject>();
+    readonly List<GameObject> activeDrones = new List<GameObject>();
+    static Sprite cachedFallbackSprite;
+    static Sprite cachedGlowSprite;
+    Coroutine missileShowerCoroutine;
+    bool isMissileShowerActive;
+    BossStage activeAppliedStage;
+    Vector2 carColliderSize;
+    Vector2 carColliderOffset;
+    Vector3 baseVisualScale = Vector3.one;
+    int bossBoundaryLayer = -1;
+    Vector2 rocketWaypoint;
+    float rocketWaypointTimer;
+    float rocketBobPhase;
+    Color baseSpriteColor = Color.white;
+    float hitFlashTimer;
 
     static readonly int BossStageHash = Animator.StringToHash("BossStage");
     static readonly int IsAcceleratingHash = Animator.StringToHash("IsAccelerating");
@@ -88,6 +141,7 @@ public class ElonMuskController : MonoBehaviour
     void Awake()
     {
         body = GetComponent<Rigidbody2D>();
+        bodyCollider = GetComponent<BoxCollider2D>();
         body.bodyType = RigidbodyType2D.Dynamic;
         body.linearDamping = 0f;
         body.constraints = RigidbodyConstraints2D.FreezeRotation;
@@ -98,8 +152,16 @@ public class ElonMuskController : MonoBehaviour
             animator = GetComponentInChildren<Animator>();
         if (spriteRenderer == null)
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        if (spriteRenderer != null)
+            baseSpriteColor = spriteRenderer.color;
         if (visualTransform == null && animator != null)
             visualTransform = animator.transform;
+        if (visualTransform != null)
+            baseVisualScale = visualTransform.localScale;
+
+        carColliderSize = bodyCollider.size;
+        carColliderOffset = bodyCollider.offset;
+        bossBoundaryLayer = LayerMask.NameToLayer(bossBoundaryLayerName);
 
         if (firePoint != null)
             firePointAbsX = Mathf.Abs(firePoint.localPosition.x);
@@ -118,16 +180,29 @@ public class ElonMuskController : MonoBehaviour
                 player = p1.transform;
         }
 
-        if (animator != null)
-            animator.SetInteger(BossStageHash, (int)currentStage);
+        if (cameraFollow == null)
+            cameraFollow = FindAnyObjectByType<Phase1CameraFollow>();
 
         if (currentStage == BossStage.HumanIntro)
             PlayIntroCutscene();
+
+        ApplyStageTransition(currentStage);
     }
 
     void Update()
     {
+
+        if (currentStage != activeAppliedStage)
+            ApplyStageTransition(currentStage);
+
         CheckStageTransitionsByHealth();
+        if (hitFlashTimer > 0f)
+        {
+            hitFlashTimer -= Time.deltaTime;
+            if (hitFlashTimer <= 0f && spriteRenderer != null)
+                spriteRenderer.color = baseSpriteColor;
+        }
+
         UpdateFacing();
         UpdateAnimation();
         UpdateCombatTimers(Time.deltaTime);
@@ -173,20 +248,20 @@ public class ElonMuskController : MonoBehaviour
         float brakingDistance = (currentSpeed * currentSpeed) / (2f * Mathf.Max(0.1f, carDeceleration));
 
         if (distanceToStop <= 0.05f)
-        {
-            // Close enough to player -> brake to idle
+        {   
+            // Near Player => Brake to idle
             isBrakingOrStopped = true;
             SetHorizontalVelocity(Mathf.MoveTowards(body.linearVelocity.x, 0f, carDeceleration * dt));
         }
         else if (distanceToStop <= brakingDistance)
-        {
-            // Approaching player -> decelerate (triggers ElonCar_SlowDown)
+        {   
+            // Arriving to player => Decelerate
             isBrakingOrStopped = true;
             SetHorizontalVelocity(Mathf.MoveTowards(body.linearVelocity.x, dir * 0.5f, carDeceleration * dt));
         }
         else
         {
-            // Accelerate toward player (triggers ElonCar_Accelerate -> ElonCar_TopSpeed)
+            // Accelerating towards player => Do Accelerating -> Max Speed transition
             isBrakingOrStopped = false;
             SetHorizontalVelocity(Mathf.MoveTowards(body.linearVelocity.x, dir * carMaxSpeed, carAcceleration * dt));
         }
@@ -194,20 +269,73 @@ public class ElonMuskController : MonoBehaviour
 
     void FixedUpdateRocketMode(float dt)
     {
-        if (player == null)
-        {
-            body.linearVelocity = Vector2.MoveTowards(body.linearVelocity, Vector2.zero, rocketAcceleration * dt);
-            return;
-        }
+        float minHoverY = GetRocketMinHoverY();
+        rocketWaypointTimer -= dt;
 
-        Vector2 targetPos = new Vector2(player.position.x, arenaBaseY + rocketHoverHeight);
+        if (rocketWaypointTimer <= 0f || ((Vector2)rocketWaypoint - body.position).sqrMagnitude <= 1.25f)
+            PickNextRocketWaypoint();
+
+        float bobY = Mathf.Sin(Time.time * rocketBobFrequency + rocketBobPhase) * rocketBobAmplitude;
+        float desiredY = Mathf.Max(minHoverY, rocketWaypoint.y + bobY);
+        Vector2 targetPos = new Vector2(rocketWaypoint.x, desiredY);
         Vector2 toTarget = targetPos - body.position;
 
         Vector2 desiredVelocity = toTarget.magnitude > 0.25f
             ? toTarget.normalized * rocketFlySpeed
             : Vector2.zero;
 
+
+        if (body.position.y < minHoverY && desiredVelocity.y < rocketFlySpeed * 0.5f)
+            desiredVelocity.y = rocketFlySpeed * 0.65f;
+
         body.linearVelocity = Vector2.MoveTowards(body.linearVelocity, desiredVelocity, rocketAcceleration * dt);
+    }
+
+    float GetRocketMinHoverY()
+    {
+        return Mathf.Max(rocketMinHoverY, arenaBaseY + rocketHoverHeight);
+    }
+
+    void PickNextRocketWaypoint(bool preferFarFromPlayer = false)
+    {
+        float minX = Mathf.Min(rocketMinArenaX, rocketMaxArenaX);
+        float maxX = Mathf.Max(rocketMinArenaX, rocketMaxArenaX);
+        float minY = GetRocketMinHoverY();
+        float maxY = Mathf.Max(minY, rocketMaxHoverY);
+
+        float nextX = Random.Range(minX, maxX);
+        if (player != null && rocketMinPlayerDistanceX > 0f)
+        {
+            // Keep elon Hovering across arena in Rocket mode instead of chasing glorb
+            for (int attempt = 0; attempt < 6; attempt++)
+            {
+                float candidateX = Random.Range(minX, maxX);
+                float distToPlayer = Mathf.Abs(candidateX - player.position.x);
+                float distToCurrent = Mathf.Abs(candidateX - rocketWaypoint.x);
+                bool farEnoughFromPlayer = distToPlayer >= rocketMinPlayerDistanceX;
+                bool shiftsPosition = preferFarFromPlayer || distToCurrent >= 5f;
+
+                if (farEnoughFromPlayer && shiftsPosition)
+                {
+                    nextX = candidateX;
+                    break;
+                }
+            }
+
+            if (Mathf.Abs(nextX - player.position.x) < rocketMinPlayerDistanceX)
+            {
+                float arenaMid = (minX + maxX) * 0.5f;
+                float awayDir = player.position.x >= arenaMid ? -1f : 1f;
+                nextX = Mathf.Clamp(player.position.x + awayDir * rocketMinPlayerDistanceX, minX, maxX);
+            }
+        }
+
+        float nextY = Random.Range(minY, maxY);
+        rocketWaypoint = new Vector2(nextX, nextY);
+
+        float minWait = Mathf.Min(rocketWaypointMinInterval, rocketWaypointMaxInterval);
+        float maxWait = Mathf.Max(rocketWaypointMinInterval, rocketWaypointMaxInterval);
+        rocketWaypointTimer = Random.Range(minWait, maxWait);
     }
 
     void SetHorizontalVelocity(float vx)
@@ -217,9 +345,7 @@ public class ElonMuskController : MonoBehaviour
         body.linearVelocity = velocity;
     }
 
-    // ---------------------------------------------------------
-    // FACING / FLIPPING
-    // ---------------------------------------------------------
+    // Flipping face based on orientation (Same script as Phase1Controller)
 
     void UpdateFacing()
     {
@@ -230,7 +356,6 @@ public class ElonMuskController : MonoBehaviour
         else if (player != null)
             facingRight = player.position.x > transform.position.x;
 
-        // LEFT_Stage_0..7 sprites face LEFT by default, so flipX = true when facing RIGHT
         if (spriteRenderer != null)
             spriteRenderer.flipX = facingRight;
 
@@ -242,13 +367,19 @@ public class ElonMuskController : MonoBehaviour
         }
     }
 
-    // Health and Stage Transitions
+    // Updating health, and checking for boss transition
     public void TakeDamage(float damage)
     {
         if (currentStage == BossStage.HumanIntro || currentStage == BossStage.Defeated)
             return;
 
         currentHealth = Mathf.Max(0f, currentHealth - damage);
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = new Color(1f, 0.35f, 0.35f, baseSpriteColor.a);
+            hitFlashTimer = 0.08f;
+        }
+
         CheckStageTransitionsByHealth();
     }
 
@@ -267,26 +398,46 @@ public class ElonMuskController : MonoBehaviour
 
     public void SetBossStage(BossStage newStage)
     {
-        if (currentStage == newStage)
+        if (currentStage == newStage && activeAppliedStage == newStage)
             return;
 
         currentStage = newStage;
+        ApplyStageTransition(currentStage);
+    }
+
+    void ApplyStageTransition(BossStage targetStage)
+    {
+        activeAppliedStage = targetStage;
         attackTimer = 0f;
         spawnTimer = 0f;
-        ApplyStagePhysics(currentStage);
+        ApplyStagePhysics(targetStage);
 
         if (animator != null)
         {
-            animator.SetInteger(BossStageHash, (int)currentStage);
+            animator.SetInteger(BossStageHash, (int)targetStage);
             animator.SetTrigger(TransformTriggerHash);
         }
 
-        if (currentStage != BossStage.CarMode && clearMinionsOnStageChange)
-            ClearActiveMinions();
+        if (targetStage != BossStage.CarMode && clearMinionsOnStageChange)
+            ClearGameObjectList(activeMinions);
 
-        if (currentStage == BossStage.RocketMode)
+        bool isRocket = targetStage == BossStage.RocketMode;
+        UpdateCollisionsBasedOnBossState(isRocket);
+
+        if (isRocket)
             TransformToRocket();
-        else if (currentStage == BossStage.Defeated)
+        else if (targetStage == BossStage.CarMode || targetStage == BossStage.HumanIntro)
+            RestoreCarBoundsAndScale();
+
+        if (cameraFollow != null)
+        {
+            if (isRocket)
+                cameraFollow.SetOrthographicSize(rocketCameraSize, cameraZoomDuration);
+            else if (targetStage != BossStage.Defeated)
+                cameraFollow.ResetOrthographicSize(cameraZoomDuration);
+        }
+
+        if (targetStage == BossStage.Defeated)
             PlayDefeatCutscene();
     }
 
@@ -314,8 +465,8 @@ public class ElonMuskController : MonoBehaviour
         }
     }
 
-    // Animation setup
-
+    
+    // Updating animation based on boss state
     void UpdateAnimation()
     {
         if (animator == null)
@@ -359,11 +510,7 @@ public class ElonMuskController : MonoBehaviour
                 targetZ = carTopSpeedTiltAngle * dirSign;
             }
 
-            visualTransform.localRotation = Quaternion.RotateTowards(
-                visualTransform.localRotation,
-                Quaternion.Euler(0f, 0f, targetZ),
-                rotationSmoothSpeed * Time.deltaTime
-            );
+            RotateVisualTowards(targetZ);
         }
     }
 
@@ -372,6 +519,20 @@ public class ElonMuskController : MonoBehaviour
         float speed = body.linearVelocity.magnitude;
         animator.SetBool(IsAcceleratingHash, speed > 0.1f);
         animator.SetBool(AtTopSpeedHash, speed >= rocketFlySpeed * 0.85f);
+
+        float targetZ = Mathf.Clamp(-body.linearVelocity.x * 1.25f, -rocketMaxTiltAngle, rocketMaxTiltAngle);
+        RotateVisualTowards(targetZ);
+    }
+
+    void RotateVisualTowards(float targetZ)
+    {
+        if (visualTransform == null)
+            return;
+
+        visualTransform.localRotation = Quaternion.RotateTowards(
+            visualTransform.localRotation,
+            Quaternion.Euler(0f, 0f, targetZ),
+            rotationSmoothSpeed * Time.deltaTime);
     }
 
     void ResetVisualRotation()
@@ -380,8 +541,7 @@ public class ElonMuskController : MonoBehaviour
             visualTransform.localRotation = Quaternion.identity;
     }
 
-    // COMBAT & CUTSCENE HOOKS (Empty Placeholders to Implement Later)
-
+    // Update boss combat timer (Spawn mechanics)
     void UpdateCombatTimers(float dt)
     {
         if (player == null)
@@ -405,11 +565,14 @@ public class ElonMuskController : MonoBehaviour
         }
         else if (currentStage == BossStage.RocketMode)
         {
-            attackTimer += dt;
-            if (attackTimer >= rocketShootCooldown)
+            if (!isMissileShowerActive)
             {
-                attackTimer = 0f;
-                ShootProjectile();
+                attackTimer += dt;
+                if (attackTimer >= rocketShootCooldown)
+                {
+                    attackTimer = 0f;
+                    ShootProjectile();
+                }
             }
 
             spawnTimer += dt;
@@ -478,31 +641,218 @@ public class ElonMuskController : MonoBehaviour
 
     void TransformToRocket()
     {
-        // TODO (Stage 2): Car-to-Rocket transformation VFX/SFX when Car takes 40 dmg
+        ResetVisualRotation();
+        rocketBobPhase = Random.Range(0f, Mathf.PI * 2f);
+        PickNextRocketWaypoint(preferFarFromPlayer: true);
+        if (visualTransform != null)
+            visualTransform.localScale = rocketVisualScale;
+
+        if (bodyCollider != null)
+        {
+            bodyCollider.size = rocketColliderSize;
+            bodyCollider.offset = rocketColliderOffset;
+        }
+    }
+
+    void RestoreCarBoundsAndScale()
+    {
+        if (visualTransform != null)
+            visualTransform.localScale = baseVisualScale;
+
+        if (bodyCollider != null && carColliderSize.sqrMagnitude > 0f)
+        {
+            bodyCollider.size = carColliderSize;
+            bodyCollider.offset = carColliderOffset;
+        }
+    }
+
+    void UpdateCollisionsBasedOnBossState(bool ignore)
+    {
+        if (bodyCollider == null)
+            return;
+
+        Collider2D[] allColliders = FindObjectsByType<Collider2D>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        for (int i = 0; i < allColliders.Length; i++)
+        {
+            Collider2D col = allColliders[i];
+            if (col == null || col == bodyCollider || col.isTrigger)
+                continue;
+
+            bool isCarBoundary = bossBoundaryLayer != -1 && col.gameObject.layer == bossBoundaryLayer;
+            bool isOneWayPlatform = col.GetComponent<PlatformEffector2D>() != null;
+
+            if (isCarBoundary || isOneWayPlatform)
+                Physics2D.IgnoreCollision(bodyCollider, col, ignore);
+        }
     }
 
     void ShootProjectile()
     {
-        // TODO (Rocket Mode): Fire aerial projectiles down toward player
+        if (player == null)
+            return;
+
+        StopMissileShower();
+        missileShowerCoroutine = StartCoroutine(MissileShowerRoutine());
+    }
+
+    IEnumerator MissileShowerRoutine()
+    {
+        isMissileShowerActive = true;
+
+        int count = Mathf.Max(1, missileCountPerShower);
+        float minX = Mathf.Min(missileStartX, missileEndX);
+        float maxX = Mathf.Max(missileStartX, missileEndX);
+
+        for (int i = 0; i < count; i++)
+        {
+            if (currentStage != BossStage.RocketMode)
+                break;
+
+            float t = count == 1 ? 0.5f : (float)i / (count - 1);
+            float spawnX = Mathf.Lerp(minX, maxX, t);
+            SpawnVerticalMissile(new Vector2(spawnX, missileSpawnY));
+
+            if (i < count - 1 && missileStepDelay > 0f)
+                yield return new WaitForSeconds(missileStepDelay);
+        }
+
+        missileShowerCoroutine = null;
+        isMissileShowerActive = false;
+    }
+
+    void SpawnVerticalMissile(Vector2 spawnPos)
+    {
+        int order = spriteRenderer != null ? spriteRenderer.sortingOrder + 1 : 3;
+        ElonRocketProjectile shot = rocketProjectilePrefab != null
+            ? Instantiate(rocketProjectilePrefab, spawnPos, Quaternion.identity)
+            : CreateFallbackObject<ElonRocketProjectile>(
+                "ElonVerticalMissile",
+                spawnPos,
+                fallbackMissileScale,
+                new Color(1f, 0.35f, 0.1f, 1f),
+                0.45f,
+                order);
+
+        // One way platforms disallow any bombs to pass through them (acts as shelter)
+        shot.Launch(Vector2.down, rocketProjectileSpeed, overrideBlockedByPlatforms: true);
+    }
+
+    void StopMissileShower()
+    {
+        if (missileShowerCoroutine != null)
+        {
+            StopCoroutine(missileShowerCoroutine);
+            missileShowerCoroutine = null;
+        }
+        isMissileShowerActive = false;
     }
 
     void SendHunterDrones()
     {
-        // TODO (Rocket Mode): Send AI-targeting hunter drones after player
-    }
+        activeDrones.RemoveAll(d => d == null);
+        int openSlots = maxActiveDrones - activeDrones.Count;
+        if (openSlots <= 0)
+            return;
 
-    void ClearActiveMinions()
-    {
-        for (int i = 0; i < activeMinions.Count; i++)
+        int order = spriteRenderer != null ? spriteRenderer.sortingOrder + 1 : 3;
+        int spawnCount = Mathf.Min(dronesPerWave, openSlots);
+        for (int i = 0; i < spawnCount; i++)
         {
-            if (activeMinions[i] != null)
-                Destroy(activeMinions[i]);
+            float side = (activeDrones.Count % 2 == 0) ? -1f : 1f;
+            Vector3 spawnPos = transform.position + new Vector3(side * droneSpawnOffset.x, droneSpawnOffset.y, 0f);
+
+            ElonHunterDrone drone = hunterDronePrefab != null
+                ? Instantiate(hunterDronePrefab, spawnPos, Quaternion.identity)
+                : CreateFallbackObject<ElonHunterDrone>(
+                    "ElonHunterDrone",
+                    spawnPos,
+                    new Vector3(0.9f, 0.9f, 1f),
+                    new Color(0.85f, 0.25f, 1f, 1f),
+                    0.5f,
+                    order);
+
+            drone.ConfigureCombat(droneLaserSpeed, droneLaserFireInterval, droneLasersBlockedByPlatforms, side);
+            activeDrones.Add(drone.gameObject);
         }
-        activeMinions.Clear();
     }
 
     void PlayDefeatCutscene()
     {
-        // TODO (0 HP): Face falls off rocket cutscene -> enable player escape on rocket
+        StopMissileShower();
+        ClearGameObjectList(activeDrones);
+        // TODO (0 HP): Face falls off rocket cutscene -> enable player escape on rocket to his home world : GAME ENDS (Ending cutscene maybe?)
+    }
+
+    void ClearGameObjectList(List<GameObject> list)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (list[i] != null)
+                Destroy(list[i]);
+        }
+        list.Clear();
+    }
+
+    public static T CreateFallbackObject<T>(
+        string objName,
+        Vector3 spawnPos,
+        Vector3 scale,
+        Color color,
+        float colliderRadius,
+        int sortingOrder = 3)
+        where T : Component
+    {
+        GameObject go = new GameObject(objName);
+        go.transform.position = spawnPos;
+        go.transform.localScale = scale;
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = GetFallbackSprite();
+        sr.color = color;
+        sr.sortingOrder = sortingOrder;
+
+        CircleCollider2D col = go.AddComponent<CircleCollider2D>();
+        col.radius = colliderRadius;
+        col.isTrigger = true;
+
+        return go.AddComponent<T>();
+    }
+
+    public static Sprite GetSoftGlowSprite()
+    {
+        if (cachedGlowSprite != null)
+            return cachedGlowSprite;
+
+        const int size = 32;
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        Vector2 center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
+        float maxRadius = size * 0.5f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist01 = Mathf.Clamp01(Vector2.Distance(new Vector2(x, y), center) / maxRadius);
+                float alpha = Mathf.Pow(1f - dist01, 2f);
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+            }
+        }
+
+        tex.Apply();
+        cachedGlowSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        return cachedGlowSprite;
+    }
+
+    static Sprite GetFallbackSprite()
+    {
+        if (cachedFallbackSprite != null)
+            return cachedFallbackSprite;
+
+        Texture2D tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+        tex.SetPixel(0, 0, Color.white);
+        tex.Apply();
+        cachedFallbackSprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
+        return cachedFallbackSprite;
     }
 }

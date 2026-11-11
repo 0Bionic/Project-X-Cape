@@ -29,10 +29,44 @@ public class Phase1CameraFollow : MonoBehaviour
 
     // -1 = looking down, 0 = normal, 1 = looking up.
     float lookBlend;
+    float defaultOrthographicSize;
+    float zoomStartSize;
+    float zoomTargetSize;
+    float zoomDuration;
+    float zoomElapsed;
+    bool isZooming;
 
     void Awake()
     {
         cam = GetComponent<Camera>();
+        defaultOrthographicSize = cam.orthographicSize;
+        zoomTargetSize = defaultOrthographicSize;
+    }
+
+    public void SetOrthographicSize(float targetSize, float duration = 1f)
+    {
+        if (cam == null)
+            return;
+
+        zoomStartSize = cam.orthographicSize;
+        zoomTargetSize = Mathf.Max(1f, targetSize);
+        zoomDuration = Mathf.Max(0f, duration);
+        zoomElapsed = 0f;
+
+        if (zoomDuration <= 0f)
+        {
+            cam.orthographicSize = zoomTargetSize;
+            isZooming = false;
+        }
+        else
+        {
+            isZooming = true;
+        }
+    }
+
+    public void ResetOrthographicSize(float duration = 1f)
+    {
+        SetOrthographicSize(defaultOrthographicSize, duration);
     }
 
     void Start()
@@ -48,6 +82,15 @@ public class Phase1CameraFollow : MonoBehaviour
 
     void LateUpdate()
     {
+        if (isZooming && cam != null)
+        {
+            zoomElapsed += Time.deltaTime;
+            float t = zoomDuration > 0f ? Mathf.Clamp01(zoomElapsed / zoomDuration) : 1f;
+            cam.orthographicSize = Mathf.Lerp(zoomStartSize, zoomTargetSize, Mathf.SmoothStep(0f, 1f, t));
+            if (t >= 1f)
+                isZooming = false;
+        }
+
         Keyboard keyboard = Keyboard.current;
 
         bool lookingUp = keyboard != null && keyboard.wKey.isPressed;

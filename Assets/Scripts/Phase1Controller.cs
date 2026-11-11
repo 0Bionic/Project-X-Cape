@@ -539,7 +539,7 @@ public class Phase1Controller : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.gravityModifier = 0f;
         main.maxParticles = 20;
-        main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+        main.scalingMode = ParticleSystemScalingMode.Local;
 
         ParticleSystem.EmissionModule emission = dashParticles.emission;
         emission.rateOverTime = 10f;

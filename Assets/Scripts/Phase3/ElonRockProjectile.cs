@@ -16,7 +16,7 @@ public class ElonRockProjectile : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
         CircleCollider2D col = GetComponent<CircleCollider2D>();
-        col.isTrigger = true; // Lets gravity curve the rock without bumping Elon or blocking Glorb
+        col.isTrigger = true; // Dont let the rock collide with ElonMah and Minions
 
         bossBoundaryLayer = LayerMask.NameToLayer(bossBoundaryLayerName);
     }
@@ -30,12 +30,12 @@ public class ElonRockProjectile : MonoBehaviour
         if (g < 0.01f)
             g = 9.81f;
 
-        // Guarantee an upward arc higher than both launch height and player height
-        float apexY = Mathf.Max(startPos.y, targetPos.y) + Mathf.Max(0.5f, extraArcHeight);
-        float vy = Mathf.Sqrt(2f * g * Mathf.Max(0.1f, apexY - startPos.y));
+        // Create upward arc for rock
+        float maxY = Mathf.Max(startPos.y, targetPos.y) + Mathf.Max(0.5f, extraArcHeight);
+        float vy = Mathf.Sqrt(2f * g * Mathf.Max(0.1f, maxY - startPos.y));
 
         float timeUp = vy / g;
-        float timeDown = Mathf.Sqrt(2f * Mathf.Max(0.01f, apexY - targetPos.y) / g);
+        float timeDown = Mathf.Sqrt(2f * Mathf.Max(0.01f, maxY - targetPos.y) / g);
         float totalTime = Mathf.Max(0.15f, timeUp + timeDown);
 
         float vx = (targetPos.x - startPos.x) / totalTime;
@@ -65,11 +65,11 @@ public class ElonRockProjectile : MonoBehaviour
             return;
         }
 
-        // Ignore non-solid triggers (such as BottomWall_Death or wind zones)
+        // Ignore non-solid triggers 
         if (other.isTrigger)
             return;
 
-        // Let rocks pass upward through one-way platforms, shatter when falling onto them or Floor/walls
+        // Let rocks pass through one-way platforms from down to up movements like players, and destroy when falling on platforms
         if (other.GetComponent<PlatformEffector2D>() != null && rb.linearVelocity.y > 0f)
             return;
 
