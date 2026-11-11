@@ -82,7 +82,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 4723107735738678597, guid: 7b4f343bfc067c2469748c2edb85a4ef, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -180,6 +180,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NiceOfficer
   chaseSpeed: 3.5
-  evadeSpeed: 4.5
-  catchDistance: 1.25
-  resumeChaseDistance: 4
+  viewDistance: 6
+  viewAngle: 90

@@ -27,12 +27,16 @@ public class Phase1Controller : MonoBehaviour
     [SerializeField] Sprite[] jumpFrames;
     [SerializeField] Sprite[] hurtFrames;
 
+    [Header("Sounds")]
+    [SerializeField] AudioClip hurtSound;
+
     static readonly Color DashTint = new Color(0.35f, 0.7f, 1f, 1f);
     static readonly Color HurtTint = new Color(1f, 0.2f, 0.2f, 1f);
 
     Rigidbody2D body;
     SpriteRenderer spriteRenderer;
     ParticleSystem dashParticles;
+    AudioSource hurtSource;
     Vector3 spriteRestLocalPosition;
     Color spriteColor = Color.white;
     Vector2 moveInput;
@@ -65,6 +69,10 @@ public class Phase1Controller : MonoBehaviour
         body.constraints = RigidbodyConstraints2D.FreezeRotation;
         body.interpolation = RigidbodyInterpolation2D.Interpolate;
         body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+        hurtSource = gameObject.AddComponent<AudioSource>();
+        hurtSource.playOnAwake = false;
+        hurtSource.spatialBlend = 0f;
 
         spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer == null)
@@ -243,6 +251,8 @@ public class Phase1Controller : MonoBehaviour
         hurting = true;
         hurtTime = 0f;
         dashReady = true;
+        if (hurtSound != null && hurtSource != null)
+            hurtSource.PlayOneShot(hurtSound);
         body.linearVelocity = Vector2.zero;
         if (spriteRenderer != null)
             spriteRenderer.color = HurtTint;

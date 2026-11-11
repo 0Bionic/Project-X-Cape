@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Project-X-Cape.slnx"
+    "dotnet.defaultSolution": "Project-X-Cape.sln"
 }

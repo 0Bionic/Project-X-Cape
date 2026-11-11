@@ -9,7 +9,6 @@ public class FallingSpike : MonoBehaviour
     [SerializeField, Min(0.01f)] float respawnDelay = 5f;
     //[SerializeField, Min(0.01f)] float detectionRange = 1.5f;
     [SerializeField, Min(0.01f)] float maxFallDistance = 10f;
-    [SerializeField, Min(0f)] float embeddedDuration = 2f;
 
     [Header("Detection Area — World Units")]
     [SerializeField, Min(0f)] float detectionLeft = 0.5f;
@@ -17,13 +16,10 @@ public class FallingSpike : MonoBehaviour
     [SerializeField, Min(0f)] float detectionUp = 0.25f;
     [SerializeField, Min(0f)] float detectionDown = 2f;
 
-    float embeddedTimer;
-
     enum State
     {
         Waiting,
         Falling,
-        Embedded,
         Hidden
     }
 
@@ -90,14 +86,6 @@ public class FallingSpike : MonoBehaviour
 
                 break;
 
-            case State.Embedded:
-                embeddedTimer -= Time.fixedDeltaTime;
-
-                if (embeddedTimer <= 0f)
-                    HideSpike();
-
-                break;
-
             case State.Hidden:
                 respawnTimer -= Time.fixedDeltaTime;
 
@@ -117,39 +105,20 @@ public class FallingSpike : MonoBehaviour
         body.linearVelocity = Vector2.down * fallSpeed;
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
+    void OnTriggerEnter2D(Collider2D other)
     {
         if (state != State.Falling)
             return;
 
-        Phase1Controller hitPlayer =
-            collision.collider.GetComponentInParent<Phase1Controller>();
+        Phase1Controller hitPlayer = other.GetComponent<Phase1Controller>();
+        if (hitPlayer == null)
+            hitPlayer = other.GetComponentInParent<Phase1Controller>();
 
-        if (hitPlayer != null)
-        {
-            hitPlayer.Hit();
-            HideSpike();
+        if (hitPlayer == null)
             return;
-        }
 
-        EmbedSpike();
-    }
-
-    void EmbedSpike()
-    {
-        state = State.Embedded;
-        embeddedTimer = embeddedDuration;
-
-        body.linearVelocity = Vector2.zero;
-        body.angularVelocity = 0f;
-        body.bodyType = RigidbodyType2D.Kinematic;
-
-        //keep the sprite visible but prevent it from blocking
-        //or damaging the player after landing
-        spikeCollider.enabled = false;
-
-        if (embeddedDuration <= 0f)
-            HideSpike();
+        hitPlayer.Hit();
+        HideSpike();
     }
 
     void HideSpike()
