@@ -50,6 +50,10 @@ public class Phase1Controller : MonoBehaviour
     bool grounded;
     bool dashReady = true;
     bool leftGroundAfterDash;
+
+    const int MaxJumps = 2;
+    int jumpsUsed;
+
     readonly ContactPoint2D[] groundContacts = new ContactPoint2D[8];
 
     void Awake()
@@ -108,8 +112,11 @@ public class Phase1Controller : MonoBehaviour
 
         if (!hurting && dashReady && WasDashPressed())
             StartDash();
-        else if (!hurting && !dashing && !jumping && WasJumpPressed())
-            Jump();
+        else if (!hurting && !dashing &&
+         jumpsUsed < MaxJumps && WasJumpPressed())
+            {
+                Jump();
+            }
 
         UpdateFacing();
         UpdateAnimation();
@@ -243,12 +250,23 @@ public class Phase1Controller : MonoBehaviour
 
     void Jump()
     {
+        if (jumpsUsed >= MaxJumps)
+            return;
+
+        jumpsUsed++;
+        grounded = false;
         jumping = true;
-        jumpSpeed = Mathf.Max(maxSpeed, Mathf.Sqrt(2f * gravity * Mathf.Max(jumpHeight, 0.01f)));
-        
-        float heightMultiplier = WindZone2D.GetJumpHeightMultiplier(GetComponent<Collider2D>());
+
+        jumpSpeed = Mathf.Max(
+            maxSpeed,
+            Mathf.Sqrt(2f * gravity * Mathf.Max(jumpHeight, 0.01f))
+        );
+
+        float heightMultiplier =
+            WindZone2D.GetJumpHeightMultiplier(GetComponent<Collider2D>());
+
         jumpSpeed *= Mathf.Sqrt(heightMultiplier);
-        
+
         Vector2 velocity = body.linearVelocity;
         velocity.y = jumpSpeed;
         body.linearVelocity = velocity;
@@ -325,7 +343,19 @@ public class Phase1Controller : MonoBehaviour
             return;
         }
 
-        if (Mathf.Abs(moveInput.x) > 0f || moveInput.y < 0f)
+        //looking down while stationary shows a still idle pose
+        if (moveInput.y < 0f && Mathf.Abs(moveInput.x) <= 0.01f)
+        {
+            runTime = 0f;
+            idleTime = 0f;
+
+            if (idleFrames != null && idleFrames.Length > 0)
+                spriteRenderer.sprite = idleFrames[0];
+
+            return;
+        }
+
+        if (Mathf.Abs(moveInput.x) > 0f)
         {
             PlayRun();
             return;
@@ -346,6 +376,9 @@ public class Phase1Controller : MonoBehaviour
         hurtTime = 0f;
         body.linearVelocity = Vector2.zero;
         transform.position = spawnPosition;
+        jumpsUsed = 0;
+        grounded = false;
+        jumping = false;
         if (spriteRenderer != null)
             spriteRenderer.color = spriteColor;
     }
@@ -408,15 +441,29 @@ public class Phase1Controller : MonoBehaviour
     void UpdateGrounded()
     {
         bool wasGrounded = grounded;
-        grounded = CheckGrounded();
 
-        if (!grounded)
+        //prevent lingering floor contacts from restoring jumps at takeoff
+        grounded = body.linearVelocity.y <= 0.01f && CheckGrounded();
+
+        if (grounded)
+        {
+            jumpsUsed = 0;
+        }
+        else
+        {
             leftGroundAfterDash = true;
 
-        if (!dashReady && grounded && leftGroundAfterDash && !wasGrounded)
+            //walking off a ledge leaves one air jump
+            if (jumpsUsed == 0)
+                jumpsUsed = 1;
+        }
+
+        if (!dashReady && grounded &&
+            leftGroundAfterDash && !wasGrounded)
         {
             leftGroundAfterDash = false;
             dashReady = true;
+
             if (dashing)
                 EndDashBoost();
         }
@@ -425,21 +472,14 @@ public class Phase1Controller : MonoBehaviour
     bool CheckGrounded()
     {
         int count = body.GetContacts(groundContacts);
+
         for (int i = 0; i < count; i++)
         {
             if (groundContacts[i].normal.y > 0.5f)
                 return true;
         }
 
-        Collider2D collider = GetComponent<Collider2D>();
-        if (collider == null)
-            return false;
-
-        Bounds bounds = collider.bounds;
-        Vector2 origin = new Vector2(bounds.center.x, bounds.min.y + 0.02f);
-        Vector2 size = new Vector2(Mathf.Max(0.02f, bounds.size.x * 0.75f), 0.04f);
-        RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, Vector2.down, 0.1f);
-        return hit.collider != null && hit.rigidbody != body;
+        return false;
     }
 
     float DashDuration

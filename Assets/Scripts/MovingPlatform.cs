@@ -9,6 +9,8 @@ public class MovingPlatform : MonoBehaviour
 {
     public enum MovementAxis { Horizontal, Vertical }
 
+    [SerializeField] PhysicsMaterial2D surfaceMaterial;
+
     [SerializeField] MovementAxis axis;
 
     [SerializeField, Min(0f)] float speed = 1f;
@@ -38,6 +40,8 @@ public class MovingPlatform : MonoBehaviour
     {
         body = GetComponent<Rigidbody2D>();
         platformCollider = GetComponent<Collider2D>();
+        if (surfaceMaterial != null)
+            platformCollider.sharedMaterial = surfaceMaterial;
 
         origin = body.position;
 

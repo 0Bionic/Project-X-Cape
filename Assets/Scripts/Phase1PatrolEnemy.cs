@@ -4,17 +4,19 @@ using UnityEngine;
 [RequireComponent(typeof(BoxCollider2D))]
 public class Phase1PatrolEnemy : MonoBehaviour
 {
-    [Header("Patrol — From Original Position")]
+    [Header("Patrol - From Original Position")]
     [SerializeField, Min(0f)] float patrolLeft = 1f;
     [SerializeField, Min(0f)] float patrolRight = 1f;
     [SerializeField, Min(0f)] float patrolSpeed = 1f;
     [SerializeField, Min(0f)] float patrolPauseDuration = 0.5f;
 
-    float patrolPauseTimer;
-    bool pausingAtEndpoint;
+    [Header("Detection - World Units From Enemy")]
+    [SerializeField, Min(0f)] float detectionLeft = 2f;
+    [SerializeField, Min(0f)] float detectionRight = 2f;
+    [SerializeField, Min(0f)] float detectionUp = 1f;
+    [SerializeField, Min(0f)] float detectionDown = 1f;
 
     [Header("Chase")]
-    [SerializeField, Min(0f)] float detectionRadius = 2f;
     [SerializeField, Min(0f)] float chaseSpeed = 2f;
 
     [Tooltip("Maximum horizontal distance from the original position.")]
@@ -22,34 +24,36 @@ public class Phase1PatrolEnemy : MonoBehaviour
 
     [SerializeField, Min(0f)] float stopDistance = 0.05f;
 
-    [Header("Respawn")]
-    [SerializeField, Min(0f)] float respawnDelay = 1f;
+    [Header("Return Home")]
+    [SerializeField, Min(0.01f)] float returnSpeed = 1.5f;
 
-    [Tooltip("Prevents immediately chasing again after respawning.")]
+    [Tooltip("Detection cooldown after reaching home and at startup.")]
     [SerializeField, Min(0f)] float detectionGraceTime = 0.5f;
 
     enum State
     {
         Patrol,
         Chase,
-        Hidden
+        Returning
     }
 
+    const float ArrivalTolerance = 0.02f;
+
     Rigidbody2D body;
-    SpriteRenderer[] visuals;
     Phase1Controller player;
 
     Vector2 originalPosition;
     State state;
+
     bool movingRight = true;
-    float respawnTimer;
+    bool pausingAtEndpoint;
+
+    float patrolPauseTimer;
     float graceTimer;
 
     void Awake()
     {
         body = GetComponent<Rigidbody2D>();
-        visuals = GetComponentsInChildren<SpriteRenderer>();
-
         originalPosition = body.position;
 
         body.bodyType = RigidbodyType2D.Dynamic;
@@ -60,6 +64,7 @@ public class Phase1PatrolEnemy : MonoBehaviour
         body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
         GetComponent<BoxCollider2D>().isTrigger = false;
+
         graceTimer = detectionGraceTime;
     }
 
@@ -71,33 +76,45 @@ public class Phase1PatrolEnemy : MonoBehaviour
     void FixedUpdate()
     {
         float dt = Time.fixedDeltaTime;
-
-        if (state == State.Hidden)
-        {
-            respawnTimer -= dt;
-
-            if (respawnTimer <= 0f)
-                Respawn();
-
-            return;
-        }
-
         graceTimer = Mathf.Max(0f, graceTimer - dt);
 
-        if (state == State.Patrol)
+        if (state == State.Patrol &&
+            graceTimer <= 0f &&
+            PlayerInsideDetection())
         {
-            if (player != null && graceTimer <= 0f &&
-                Vector2.Distance(body.position, player.transform.position)
-                <= detectionRadius)
-            {
-                state = State.Chase;
-            }
+            pausingAtEndpoint = false;
+            patrolPauseTimer = 0f;
+            state = State.Chase;
         }
 
-        if (state == State.Chase)
-            Chase(dt);
-        else
-            Patrol(dt);
+        switch (state)
+        {
+            case State.Patrol:
+                Patrol(dt);
+                break;
+
+            case State.Chase:
+                Chase(dt);
+                break;
+
+            case State.Returning:
+                ReturnHome(dt);
+                break;
+        }
+    }
+
+    bool PlayerInsideDetection()
+    {
+        if (player == null)
+            return false;
+
+        Vector2 offset =
+            (Vector2)player.transform.position - body.position;
+
+        return offset.x >= -detectionLeft &&
+               offset.x <= detectionRight &&
+               offset.y >= -detectionDown &&
+               offset.y <= detectionUp;
     }
 
     void Patrol(float dt)
@@ -105,9 +122,7 @@ public class Phase1PatrolEnemy : MonoBehaviour
         float leftEdge = originalPosition.x - patrolLeft;
         float rightEdge = originalPosition.x + patrolRight;
 
-        const float tolerance = 0.02f;
-
-        if (rightEdge - leftEdge <= tolerance)
+        if (rightEdge - leftEdge <= ArrivalTolerance)
         {
             SetHorizontalSpeed(0f);
             return;
@@ -126,8 +141,8 @@ public class Phase1PatrolEnemy : MonoBehaviour
         }
 
         bool reachedEndpoint = movingRight
-            ? body.position.x >= rightEdge - tolerance
-            : body.position.x <= leftEdge + tolerance;
+            ? body.position.x >= rightEdge - ArrivalTolerance
+            : body.position.x <= leftEdge + ArrivalTolerance;
 
         if (reachedEndpoint)
         {
@@ -148,37 +163,22 @@ public class Phase1PatrolEnemy : MonoBehaviour
 
     void Chase(float dt)
     {
-        if (player == null)
-        {
-            Despawn();
-            return;
-        }
-
         float leftLimit = originalPosition.x - chaseDistance;
         float rightLimit = originalPosition.x + chaseDistance;
 
-        const float boundaryTolerance = 0.02f;
-
-        if (body.position.x <= leftLimit + boundaryTolerance ||
-            body.position.x >= rightLimit - boundaryTolerance)
+        if (player == null ||
+            body.position.x <= leftLimit + ArrivalTolerance ||
+            body.position.x >= rightLimit - ArrivalTolerance)
         {
-            Despawn();
+            BeginReturning();
             return;
         }
 
         float playerX = player.transform.position.x;
 
-        float destination = Mathf.Clamp(
-            playerX,
-            leftLimit,
-            rightLimit
-        );
-
         bool playerInsideLimits =
             playerX > leftLimit && playerX < rightLimit;
 
-        // Only stop near the player when they are inside the chase area.
-        // Otherwise, continue to the boundary so despawning can occur.
         if (playerInsideLimits &&
             Mathf.Abs(playerX - body.position.x) <= stopDistance)
         {
@@ -186,7 +186,37 @@ public class Phase1PatrolEnemy : MonoBehaviour
             return;
         }
 
+        float destination = Mathf.Clamp(
+            playerX,
+            leftLimit,
+            rightLimit
+        );
+
         MoveHorizontally(destination, chaseSpeed, dt);
+    }
+
+    void BeginReturning()
+    {
+        state = State.Returning;
+        pausingAtEndpoint = false;
+        patrolPauseTimer = 0f;
+        SetHorizontalSpeed(0f);
+    }
+
+    void ReturnHome(float dt)
+    {
+        if (Mathf.Abs(body.position.x - originalPosition.x)
+            <= ArrivalTolerance)
+        {
+            SetHorizontalSpeed(0f);
+
+            movingRight = true;
+            graceTimer = detectionGraceTime;
+            state = State.Patrol;
+            return;
+        }
+
+        MoveHorizontally(originalPosition.x, returnSpeed, dt);
     }
 
     void MoveHorizontally(float destination, float speed, float dt)
@@ -207,46 +237,6 @@ public class Phase1PatrolEnemy : MonoBehaviour
         body.linearVelocity = velocity;
     }
 
-    void Despawn()
-    {
-        state = State.Hidden;
-        respawnTimer = respawnDelay;
-
-        body.linearVelocity = Vector2.zero;
-        body.simulated = false;
-        SetVisible(false);
-    }
-
-    void Respawn()
-    {
-        body.simulated = false;
-
-        body.position = originalPosition;
-        transform.position = new Vector3(
-            originalPosition.x,
-            originalPosition.y,
-            transform.position.z
-        );
-
-        body.linearVelocity = Vector2.zero;
-        body.angularVelocity = 0f;
-
-        movingRight = true;
-        pausingAtEndpoint = false;
-        patrolPauseTimer = 0f;
-        graceTimer = detectionGraceTime;
-        state = State.Patrol;
-
-        body.simulated = true;
-        SetVisible(true);
-    }
-
-    void SetVisible(bool visible)
-    {
-        foreach (SpriteRenderer visual in visuals)
-            visual.enabled = visible;
-    }
-
     void OnDrawGizmosSelected()
     {
         Vector3 origin = Application.isPlaying
@@ -257,26 +247,47 @@ public class Phase1PatrolEnemy : MonoBehaviour
             )
             : transform.position;
 
-        //green: patrol endpoints.
         Gizmos.color = Color.green;
         Gizmos.DrawLine(
             origin + Vector3.left * patrolLeft,
             origin + Vector3.right * patrolRight
         );
 
-        //red: maximum horizontal chase limits
         Gizmos.color = Color.red;
+
         Vector3 left = origin + Vector3.left * chaseDistance;
         Vector3 right = origin + Vector3.right * chaseDistance;
 
         Gizmos.DrawLine(left, right);
-        Gizmos.DrawLine(left + Vector3.down * 0.2f,
-                        left + Vector3.up * 0.2f);
-        Gizmos.DrawLine(right + Vector3.down * 0.2f,
-                        right + Vector3.up * 0.2f);
+        Gizmos.DrawLine(
+            left + Vector3.down * 0.2f,
+            left + Vector3.up * 0.2f
+        );
+        Gizmos.DrawLine(
+            right + Vector3.down * 0.2f,
+            right + Vector3.up * 0.2f
+        );
 
-        //yellow: detection radius follows the enemy
+        Vector3 detectionOrigin = Application.isPlaying && body != null
+            ? new Vector3(body.position.x, body.position.y, transform.position.z)
+            : transform.position;
+
+        Vector3 detectionCenter = detectionOrigin + new Vector3(
+            (detectionRight - detectionLeft) * 0.5f,
+            (detectionUp - detectionDown) * 0.5f,
+            0f
+        );
+
+        Vector3 detectionSize = new Vector3(
+            detectionLeft + detectionRight,
+            detectionUp + detectionDown,
+            0f
+        );
+
+        Gizmos.color = new Color(1f, 1f, 0f, 0.12f);
+        Gizmos.DrawCube(detectionCenter, detectionSize);
+
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        Gizmos.DrawWireCube(detectionCenter, detectionSize);
     }
 }
